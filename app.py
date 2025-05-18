@@ -14,7 +14,7 @@ def chat():
     user_input = data.get('message') if data else ''
     
     if user_input.lower() == "hi":
-        reply = "hello"
+        reply = "hello, Angel Ganda!"
     else:
         reply = "I don't understand."
     
