@@ -1,24 +1,42 @@
 from flask import Flask, request, jsonify
-from flask_cors import CORS
+import joblib
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
 
 app = Flask(__name__)
-CORS(app)
 
-@app.route('/', methods=['GET'])
+# Load the trained model and scaler
+model = joblib.load('trained_data/student_pass_model.pkl')
+scaler = joblib.load('trained_data/scaler.pkl')
+
+@app.route('/')
 def index():
-    return "Server is running!"
+    return "Welcome to the Student Performance Prediction API!"
 
-@app.route('/api/chat', methods=['POST'])
-def chat():
-    data = request.get_json()
-    user_input = data.get('message') if data else ''
+@app.route('/predict', methods=['POST'])
+def predict():
+    # Get the input data from the POST request
+    data = request.json
+
+    # Ensure all required fields are present in the input
+    required_columns = ['Study_Hours_per_Week', 'Sleep_Hours_per_Night', 'Attendance (%)', 'Stress_Level (1-10)']
     
-    if user_input.lower() == "hi":
-        reply = "hello, Angel Ganda!"
-    else:
-        reply = "I don't understand."
-    
-    return jsonify({"response": reply})
+    if not all(key in data for key in required_columns):
+        return jsonify({'error': 'Invalid input data. Please provide all required fields.'}), 400
+
+    # Prepare the input data
+    input_data = pd.DataFrame([data])
+
+    # Standardize the input data using the scaler
+    input_data_scaled = scaler.transform(input_data)
+
+    # Make prediction using the trained model
+    prediction = model.predict(input_data_scaled)
+
+    # Return the prediction result: 'pass' or 'fail'
+    result = 'pass' if prediction[0] == 1 else 'fail'
+
+    return jsonify({'result': result})
 
 if __name__ == '__main__':
-    app.run(host='127.0.0.1', port=5000, debug=True)
+    app.run(debug=True)
